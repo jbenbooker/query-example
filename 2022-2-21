@@ -1,0 +1,62 @@
+-- 2022-2-21
+
+-- Select the 5 Least Purchased Products from Each Category
+
+-- This query displays the five least purchased products in every category by order
+-- of category name, followed by number of purchases in ascending order, and finally 
+-- retail price in ascending order. This is accomplished through the use of a subquery
+-- to generate a temporary table with the 5 least purchased products for a given
+-- category. The outer query evaluates this table over each possible category and 
+-- compiles the products and corresponding attributes into a comprehensive table.
+
+SELECT T1.Category
+, T1.Product
+, T1.ProductID
+, T1.RetailPrice
+, T1.QuantityPurchased
+FROM (SELECT CATEGORY.CateName AS Category
+	, PRODUCT.ProdName AS Product
+	, PRODUCT.ProductID
+	, PRODUCT.ProdPrice AS RetailPrice
+	, SUM(PRODUCT_CUSTOMER.PrCuQuantity) AS QuantityPurchased
+	FROM ((CATEGORY
+		LEFT OUTER JOIN PRODUCT_CATEGORY
+			ON CATEGORY.CategoryID = PRODUCT_CATEGORY.CategoryID)
+		LEFT OUTER JOIN PRODUCT
+			ON PRODUCT.ProductID = PRODUCT_CATEGORY.ProductID)
+		LEFT OUTER JOIN PRODUCT_CUSTOMER
+			ON PRODUCT.ProductID = PRODUCT_CUSTOMER.ProductID
+	GROUP BY CATEGORY.CateName
+	, PRODUCT.ProdName
+	, PRODUCT.ProductID
+	, PRODUCT.ProdPrice
+	ORDER BY CATEGORY.CateName
+	, SUM(PRODUCT_CUSTOMER.PrCuQuantity)
+	, PRODUCT.ProdPrice) AS T1
+WHERE T1.ProductID IN
+	(SELECT TOP 5 T2.ProductID
+		FROM (SELECT CATEGORY.CateName AS Category
+		, PRODUCT.ProdName AS Product
+		, PRODUCT.ProductID
+		, PRODUCT.ProdPrice AS RetailPrice
+		, SUM(PRODUCT_CUSTOMER.PrCuQuantity) AS QuantityPurchased
+		FROM ((CATEGORY
+			LEFT OUTER JOIN PRODUCT_CATEGORY
+				ON CATEGORY.CategoryID = PRODUCT_CATEGORY.CategoryID)
+			LEFT OUTER JOIN PRODUCT
+				ON PRODUCT.ProductID = PRODUCT_CATEGORY.ProductID)
+			LEFT OUTER JOIN PRODUCT_CUSTOMER
+				ON PRODUCT.ProductID = PRODUCT_CUSTOMER.ProductID
+		GROUP BY CATEGORY.CateName
+		, PRODUCT.ProdName
+		, PRODUCT.ProductID
+		, PRODUCT.ProdPrice
+		ORDER BY CATEGORY.CateName
+		, SUM(PRODUCT_CUSTOMER.PrCuQuantity)
+		, PRODUCT.ProdPrice) AS T2
+	WHERE T1.Category = T2.Category
+	ORDER BY T2.QuantityPurchased
+	, T2.RetailPrice)
+ORDER BY T1.Category
+, T1.QuantityPurchased
+, T1.RetailPrice;
